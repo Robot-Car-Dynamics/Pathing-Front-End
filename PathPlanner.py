@@ -2,7 +2,8 @@ from GUI import GUI
 import json
 import requests
 
-api_address = "" # standin for now
+api_address = "http://localhost:8080/api/command" # standin for now
+pose_api_address = "http://localhost:8080/api/pose"  # Will be set based on api_address
 
 gui = GUI()
 
@@ -11,6 +12,46 @@ moveID = 1
 turnID = 1
 
 # button functions
+def update_pose():
+    """Request current pose from robot and update display"""
+    global pose_api_address
+    
+    # Set pose API address if not set
+    if not pose_api_address and api_address:
+        # Extract base URL from api_address and add /api/pose
+        pose_api_address = api_address.replace('/api/', '/api/pose')
+    
+    if not pose_api_address:
+        gui.show_toast("API address not configured", "error")
+        return
+    
+    try:
+        response = requests.get(pose_api_address, timeout=2)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Parse response format: {"H":"...", "pose":{"x":..., "y":...}}
+            if "pose" in data:
+                x = float(data["pose"]["x"])
+                y = float(data["pose"]["y"])
+                
+                # Update the display
+                gui.update_pose_display(x, y)
+                gui.show_toast(f"Pose updated: ({x:.2f}, {y:.2f})", "success")
+            else:
+                gui.show_toast("Invalid pose data format", "error")
+        else:
+            gui.show_toast(f"Failed to get pose: {response.status_code}", "error")
+            
+    except requests.exceptions.Timeout:
+        gui.show_toast("Pose request timed out", "error")
+    except requests.exceptions.ConnectionError:
+        gui.show_toast("Cannot connect to robot", "error")
+    except Exception as e:
+        gui.show_toast(f"Error getting pose: {str(e)}", "error")
+        print(f"Pose error: {e}")
+
 def clear_all():
     global commands
     commands.clear()
@@ -113,4 +154,5 @@ gui.remove_last_button.configure(command=remove_last)
 gui.add_point_button.configure(command=add_command)
 gui.send_button.configure(command=send_commands)
 
+gui.update_pose_button.configure(command=update_pose)
 gui.root.mainloop()

@@ -1,4 +1,6 @@
 import customtkinter
+from PIL import Image, ImageTk
+import os
 
 class GUI:
     def __init__(self):
@@ -8,14 +10,31 @@ class GUI:
         
         self.root = customtkinter.CTk()
         self.root.title("Robot Car Pathing")
-        self.root.geometry("680x540")
+        self.root.geometry("1100x540")  # Wider to accommodate pose display
+        
+        # Load car image for pose display
+        self.car_image = None
+        self.car_photo = None
+        self._load_car_image()
 
         # NOTE: making everything self.var allows access from outside
         # This amount of access is almost certainly overkill though
+        
+        # Main container - split into left (commands) and right (pose)
+        self.main_container = customtkinter.CTkFrame(self.root, fg_color="transparent")
+        self.main_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Left side - Command interface
+        self.left_side = customtkinter.CTkFrame(self.main_container, fg_color="transparent")
+        self.left_side.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        # Right side - Pose display
+        self.right_side = customtkinter.CTkFrame(self.main_container, fg_color="transparent")
+        self.right_side.pack(side="right", fill="both", padx=(5, 0))
 
         # define forms frame with tabbed interface
-        self.forms_frame = customtkinter.CTkFrame(self.root, fg_color="transparent")
-        self.forms_frame.pack(side="top", fill="y", pady=10, padx=10)
+        self.forms_frame = customtkinter.CTkFrame(self.left_side, fg_color="transparent")
+        self.forms_frame.pack(side="top", fill="y", pady=(0, 10))
         
         # Create tabbed interface for command types
         self.command_tabs = customtkinter.CTkTabview(
@@ -60,8 +79,8 @@ class GUI:
         self.explain_label.grid(column=1, row=1, pady=(0, 20))
 
         # define display and buttons
-        self.bottom_part = customtkinter.CTkFrame(self.root, fg_color="transparent")
-        self.bottom_part.pack(side="bottom", fill="y", pady=10, padx=10)
+        self.bottom_part = customtkinter.CTkFrame(self.left_side, fg_color="transparent")
+        self.bottom_part.pack(side="bottom", fill="both", expand=True)
 
         # button panel with colored buttons
         self.button_panel = customtkinter.CTkFrame(self.bottom_part, fg_color="transparent")
@@ -143,6 +162,12 @@ class GUI:
         # Toast notification system
         self.toast_queue = []
         self.toast_showing = False
+        
+        # Current pose data
+        self.current_pose = {"x": 0.0, "y": 0.0}
+        
+        # Setup pose display on right side
+        self._setup_pose_display()
 
     def add_command_block(self, command_data):
         """Add a visual command block to the display"""
@@ -380,6 +405,190 @@ class GUI:
                 toast.destroy()
         
         slide()
+    
+    def _load_car_image(self):
+        """Load and resize the car.svg image for display on the grid"""
+        try:
+            # Get the directory where GUI.py is located
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            car_svg_path = os.path.join(current_dir, "car.svg")
+
+            import cairosvg
+            from io import BytesIO
+                    
+                    # Convert SVG to PNG in memory
+            png_data = cairosvg.svg2png(url=car_svg_path, output_width=30, output_height=30)
+            self.car_image = Image.open(BytesIO(png_data))
+            print("✅ Car SVG loaded successfully")
+        except ImportError:
+                print("⚠️  SVG libraries not found, will use default icon")
+                self.car_image = None
+    
+    def _setup_pose_display(self):
+        """Setup the pose display panel on the right side"""
+        # Pose display frame
+        pose_container = customtkinter.CTkFrame(
+            self.right_side,
+            fg_color=("#E8F4F8", "#1a1a2e"),
+            border_width=2,
+            border_color=("#3b8ed0", "#1f6aa5"),
+            width=350
+        )
+        pose_container.pack(fill="both", expand=True, padx=5, pady=5)
+        pose_container.pack_propagate(False)
+        
+        # Title
+        title_label = customtkinter.CTkLabel(
+            pose_container,
+            text="Robot Pose",
+            font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=(15, 10))
+        
+        # Update Pose button
+        self.update_pose_button = customtkinter.CTkButton(
+            pose_container,
+            text="Update Pose",
+            fg_color=("#3b8ed0", "#1f6aa5"),
+            hover_color=("#2a7cbd", "#165a8f"),
+            font=("Arial", 12, "bold"),
+            width=150
+        )
+        self.update_pose_button.pack(pady=(0, 10))
+        
+        # Pose coordinates display
+        coords_frame = customtkinter.CTkFrame(pose_container, fg_color="transparent")
+        coords_frame.pack(pady=(0, 10))
+        
+        self.x_label = customtkinter.CTkLabel(
+            coords_frame,
+            text="X: 0.0 m",
+            font=("Arial", 12, "bold"),
+            text_color=("#3b8ed0", "#1f6aa5")
+        )
+        self.x_label.pack(side="left", padx=15)
+        
+        self.y_label = customtkinter.CTkLabel(
+            coords_frame,
+            text="Y: 0.0 m",
+            font=("Arial", 12, "bold"),
+            text_color=("#3b8ed0", "#1f6aa5")
+        )
+        self.y_label.pack(side="right", padx=15)
+        
+        # Canvas for grid display
+        self.pose_canvas = customtkinter.CTkCanvas(
+            pose_container,
+            width=320,
+            height=320,
+            bg="#ffffff",
+            highlightthickness=0
+        )
+        self.pose_canvas.pack(pady=(10, 15))
+        
+        # Draw initial grid
+        self._draw_pose_grid()
+    
+    def _draw_pose_grid(self):
+        """Draw the grid and robot position"""
+        self.pose_canvas.delete("all")
+        
+        # Grid parameters
+        width = 320
+        height = 320
+        grid_size = 20  # pixels per grid unit
+        center_x = width // 2
+        center_y = height // 2
+        
+        # Draw grid lines
+        for i in range(0, width, grid_size):
+            # Vertical lines
+            color = "#999999" if i == center_x else "#dddddd"
+            self.pose_canvas.create_line(i, 0, i, height, fill=color, width=1)
+        
+        for i in range(0, height, grid_size):
+            # Horizontal lines
+            color = "#999999" if i == center_y else "#dddddd"
+            self.pose_canvas.create_line(0, i, width, i, fill=color, width=1)
+        
+        # Draw axes labels
+        self.pose_canvas.create_text(center_x + 5, 10, text="Y+", fill="#333333", anchor="nw", font=("Arial", 10))
+        self.pose_canvas.create_text(width - 20, center_y - 5, text="X+", fill="#333333", anchor="se", font=("Arial", 10))
+        
+        # Draw origin
+        self.pose_canvas.create_oval(
+            center_x - 3, center_y - 3,
+            center_x + 3, center_y + 3,
+            fill="#999999", outline="#666666"
+        )
+        
+        # Draw robot position
+        self._draw_robot_position()
+    
+    def _draw_robot_position(self):
+        """Draw the robot's current position on the grid"""
+        width = 320
+        height = 320
+        center_x = width // 2
+        center_y = height // 2
+        grid_size = 20  # pixels per grid unit
+        
+        # Convert pose coordinates to canvas coordinates
+        # Note: Canvas Y is inverted (0 at top), so we flip it
+        robot_x = center_x + (self.current_pose["x"] * grid_size)
+        robot_y = center_y - (self.current_pose["y"] * grid_size)
+        
+        # Position trail (small dot) - draw first so car appears on top
+        self.pose_canvas.create_oval(
+            robot_x - 2, robot_y - 2,
+            robot_x + 2, robot_y + 2,
+            fill="#51cf66", outline="",
+            tags="trail"
+        )
+        
+        # Draw robot using car image if available, otherwise use default icon
+        if self.car_image:
+            # Convert PIL image to PhotoImage for canvas
+            self.car_photo = ImageTk.PhotoImage(self.car_image)
+            
+            # Draw the car image centered on the robot position
+            self.pose_canvas.create_image(
+                robot_x, robot_y,
+                image=self.car_photo,
+                tags="robot"
+            )
+        else:
+            # Fallback: Draw robot as a square with direction indicator
+            robot_size = 10
+            
+            # Robot body (square)
+            self.pose_canvas.create_rectangle(
+                robot_x - robot_size, robot_y - robot_size,
+                robot_x + robot_size, robot_y + robot_size,
+                fill="#3b8ed0", outline="#1f6aa5", width=2,
+                tags="robot"
+            )
+            
+            # Direction indicator (small triangle pointing up/forward)
+            self.pose_canvas.create_polygon(
+                robot_x, robot_y - robot_size,  # top point
+                robot_x - 5, robot_y - robot_size + 8,  # bottom left
+                robot_x + 5, robot_y - robot_size + 8,  # bottom right
+                fill="#ffffff", outline="",
+                tags="robot"
+            )
+    
+    def update_pose_display(self, x, y):
+        """Update the pose display with new coordinates"""
+        self.current_pose["x"] = x
+        self.current_pose["y"] = y
+        
+        # Update labels
+        self.x_label.configure(text=f"X: {x:.2f} m")
+        self.y_label.configure(text=f"Y: {y:.2f} m")
+        
+        # Redraw grid with new position
+        self._draw_pose_grid()
 
 if __name__ == "__main__":
     gui = GUI()
