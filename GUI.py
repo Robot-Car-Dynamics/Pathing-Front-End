@@ -55,12 +55,38 @@ class GUI:
         # ===== MOVEMENT TAB =====
         move_tab = self.command_tabs.tab("Movement")
 
-        self.dist_label = customtkinter.CTkLabel(move_tab, text="Distance:", font=("Arial", 12))
-        self.dist_label.grid(column=0, row=0, padx=10, pady=20)
-        self.dist_entry = customtkinter.CTkEntry(move_tab, placeholder_text="Enter distance...", width=200)
-        self.dist_entry.grid(column=1, row=0, padx=5, pady=20)
-        self.dist_units_label = customtkinter.CTkLabel(move_tab, text="meters", font=("Arial", 11))
-        self.dist_units_label.grid(column=2, row=0, padx=10, pady=20)
+        # Distance label
+        self.dist_label = customtkinter.CTkLabel(move_tab, text="Distance:", font=("Arial", 14, "bold"))
+        self.dist_label.grid(column=0, row=0, columnspan=5, padx=10, pady=(15, 10))
+        
+        # Preset distance buttons
+        self.dist_selection = customtkinter.StringVar(self.root, value="")
+        
+        preset_distances = ["0.1", "0.15", "0.2", "0.25"]
+        self.preset_dist_buttons = []
+        for i, dist in enumerate(preset_distances):
+            btn = customtkinter.CTkButton(
+                move_tab,
+                text=f"{dist}m",
+                width=80,
+                fg_color=("#3b8ed0", "#1f6aa5"),
+                hover_color=("#2a7cbd", "#165a8f")
+            )
+            btn.grid(column=i, row=1, padx=5, pady=5)
+            self.preset_dist_buttons.append(btn)
+        
+        # Custom distance input
+        custom_frame = customtkinter.CTkFrame(move_tab, fg_color="transparent")
+        custom_frame.grid(column=0, row=2, columnspan=5, pady=(10, 15))
+        
+        custom_label = customtkinter.CTkLabel(custom_frame, text="Custom:", font=("Arial", 11))
+        custom_label.pack(side="left", padx=5)
+        
+        self.dist_entry = customtkinter.CTkEntry(custom_frame, placeholder_text="Enter distance...", width=120)
+        self.dist_entry.pack(side="left", padx=5)
+        
+        custom_units = customtkinter.CTkLabel(custom_frame, text="meters", font=("Arial", 10))
+        custom_units.pack(side="left", padx=5)
         
         # Always move forward - set direction to 1 and hide the selection
         self.direction_selection = customtkinter.IntVar(self.root, value=1)  # Always forward
@@ -68,15 +94,41 @@ class GUI:
         # ===== TURN TAB =====
         turn_tab = self.command_tabs.tab("Turn")
         
-        self.direction_label = customtkinter.CTkLabel(turn_tab, text="Direction:", font=("Arial", 12))
-        self.direction_label.grid(row=0, column=0, padx=10, pady=20)
-        self.direction_entry = customtkinter.CTkEntry(turn_tab, placeholder_text="Enter angle...", width=200)
-        self.direction_entry.grid(column=1, row=0, padx=5, pady=20)
-        self.direction_units_label = customtkinter.CTkLabel(turn_tab, text="degrees", font=("Arial", 11))
-        self.direction_units_label.grid(column=2, row=0, padx=10, pady=20)
+        # Angle label
+        self.angle_label = customtkinter.CTkLabel(turn_tab, text="Angle:", font=("Arial", 14, "bold"))
+        self.angle_label.grid(column=0, row=0, columnspan=5, padx=10, pady=(15, 10))
+        
+        # Preset angle buttons
+        self.angle_selection = customtkinter.StringVar(self.root, value="")
+        
+        preset_angles = ["10", "45", "90", "180"]
+        self.preset_angle_buttons = []
+        for i, angle in enumerate(preset_angles):
+            btn = customtkinter.CTkButton(
+                turn_tab,
+                text=f"{angle}°",
+                width=80,
+                fg_color=("#9775fa", "#7950f2"),
+                hover_color=("#845ef7", "#6741d9")
+            )
+            btn.grid(column=i, row=1, padx=5, pady=5)
+            self.preset_angle_buttons.append(btn)
+        
+        # Custom angle input
+        custom_angle_frame = customtkinter.CTkFrame(turn_tab, fg_color="transparent")
+        custom_angle_frame.grid(column=0, row=2, columnspan=5, pady=(10, 10))
+        
+        custom_angle_label = customtkinter.CTkLabel(custom_angle_frame, text="Custom:", font=("Arial", 11))
+        custom_angle_label.pack(side="left", padx=5)
+        
+        self.direction_entry = customtkinter.CTkEntry(custom_angle_frame, placeholder_text="Enter angle...", width=120)
+        self.direction_entry.pack(side="left", padx=5)
+        
+        custom_angle_units = customtkinter.CTkLabel(custom_angle_frame, text="degrees", font=("Arial", 10))
+        custom_angle_units.pack(side="left", padx=5)
 
         self.explain_label = customtkinter.CTkLabel(turn_tab, text="Note: 90° is straight ahead", font=("Arial", 10, "italic"), text_color=("#555555", "#aaaaaa"))
-        self.explain_label.grid(column=1, row=1, pady=(0, 20))
+        self.explain_label.grid(column=0, row=3, columnspan=5, pady=(5, 15))
 
         # define display and buttons
         self.bottom_part = customtkinter.CTkFrame(self.left_side, fg_color="transparent")

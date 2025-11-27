@@ -73,6 +73,35 @@ def remove_last():
         commands.pop(-1)
         gui.remove_last_command_block()
 
+def add_preset_move(distance):
+    """Add a movement command with preset distance"""
+    global moveID, commands
+    
+    move_command = {
+        "cmd" : "move",
+        "d" : distance,
+        "dir" : 1,  # Always forward
+        "id" : f"m{moveID}"
+    }
+    moveID += 1
+    commands.append(move_command)
+    gui.add_command_block(move_command)
+    gui.show_toast(f"Move {distance}m added", "success")
+
+def add_preset_turn(angle):
+    """Add a turn command with preset angle"""
+    global turnID, commands
+    
+    turn_command = {
+        "cmd" : "turn",
+        "a" : angle,
+        "id" : f"t{turnID}"
+    }
+    turnID += 1
+    commands.append(turn_command)
+    gui.add_command_block(turn_command)
+    gui.show_toast(f"Turn {angle}° added", "success")
+
 def add_command():
     global moveID, turnID, commands
     
@@ -80,7 +109,7 @@ def add_command():
     active_tab = gui.command_tabs.get()
     
     if active_tab == "Movement":
-        # Process movement command (always forward)
+        # Process custom movement command
         distance = gui.dist_entry.get()
         
         if not distance:
@@ -100,7 +129,7 @@ def add_command():
         gui.show_toast("Movement command added", "success")
         
     elif active_tab == "Turn":
-        # Process turn command
+        # Process custom turn command
         direction = gui.direction_entry.get()
         
         if not direction:
@@ -155,4 +184,15 @@ gui.add_point_button.configure(command=add_command)
 gui.send_button.configure(command=send_commands)
 
 gui.update_pose_button.configure(command=update_pose)
+
+# Configure preset distance buttons
+preset_distances = ["0.1", "0.15", "0.2", "0.25"]
+for i, btn in enumerate(gui.preset_dist_buttons):
+    btn.configure(command=lambda d=preset_distances[i]: add_preset_move(d))
+
+# Configure preset angle buttons
+preset_angles = ["10", "45", "90", "180"]
+for i, btn in enumerate(gui.preset_angle_buttons):
+    btn.configure(command=lambda a=preset_angles[i]: add_preset_turn(a))
+
 gui.root.mainloop()
