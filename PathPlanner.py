@@ -2,8 +2,8 @@ from GUI import GUI
 import json
 import requests
 
-api_address = "http://localhost:8080/api/command" # standin for now
-pose_api_address = "http://localhost:8080/api/pose"  # Will be set based on api_address
+api_address = "http://192.168.4.1/api/path" # standin for now
+pose_api_address = "http://192.168.4.1/api/pose"  # Will be set based on api_address
 
 gui = GUI()
 
@@ -168,6 +168,7 @@ def send_commands():
     for i in range(len(commands)):
         try:
             response = requests.post(api_address, json=commands[i])
+            print(api_address)
             print(f"Sent command {i+1}/{len(commands)} - Status: {response.status_code}")
         except Exception as e:
             print(f"Error sending command {i+1}: {e}")
